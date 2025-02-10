@@ -73,7 +73,7 @@
     <div id="timerSection">
       <h2>Timer</h2>
       <div id="timerDisplay">00:00:00</div>
-      <input type="number" id="timerInput" placeholder="Enter seconds" />
+      <input type="number" id="timerInput" placeholder="Enter minutes" />
       <br>
       <button onclick="startTimer()">Start Timer</button>
       <button onclick="pauseTimer()">Pause Timer</button>
@@ -97,7 +97,7 @@
   <script>
     // ========= Firebase Setup =========
     // Replace these with your own Firebase project configuration
-   // Import the functions you need from the SDKs you need
+    // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 // TODO: Add SDKs for Firebase products that you want to use
@@ -158,12 +158,14 @@ const analytics = getAnalytics(app);
 
     // ========= Timer Functions =========
     function startTimer() {
-      var inputSeconds = parseInt(document.getElementById("timerInput").value);
-      if (isNaN(inputSeconds) || inputSeconds <= 0) {
-        alert("Please enter a positive number of seconds.");
+      var inputMinutes = parseInt(document.getElementById("timerInput").value);
+      if (isNaN(inputMinutes) || inputMinutes <= 0) {
+        alert("Please enter a positive number of minutes.");
         return;
       }
-      var endTime = Date.now() + inputSeconds * 1000;
+      // Convert minutes to seconds
+      var totalSeconds = inputMinutes * 60;
+      var endTime = Date.now() + totalSeconds * 1000;
       // Set the timer state in Firebase as running.
       timerRef.set({ status: "running", endTime: endTime });
     }
