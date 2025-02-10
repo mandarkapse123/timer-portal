@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>Modern Timer and Stopwatch Portal</title>
+  <!-- Using a modern Google Font -->
   <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:,"> <!-- Suppresses favicon error -->
+  <!-- Optional: A blank favicon to avoid 404 errors -->
+  <link rel="icon" href="data:,">
   <style>
+    /* Global Styles */
     body {
       font-family: 'Roboto', sans-serif;
-      background-color: #000;
+      background-color: #000; /* Pitch black background */
       color: #fff;
       margin: 0;
       padding: 20px;
@@ -23,6 +26,7 @@
       align-items: center;
       gap: 50px;
     }
+    /* Section Styles */
     #timerSection, #stopwatchSection {
       background: #1a1a1a;
       padding: 20px;
@@ -36,6 +40,7 @@
       font-weight: bold;
       margin: 20px 0;
     }
+    /* Button and Input Styles */
     button, input[type="number"] {
       padding: 10px 20px;
       margin: 5px;
@@ -61,6 +66,7 @@
 <body>
   <h1>Modern Timer and Stopwatch Portal</h1>
   <div class="container">
+    <!-- Timer Section -->
     <div id="timerSection">
       <h2>Timer</h2>
       <div id="timerDisplay">00:00:00</div>
@@ -70,6 +76,8 @@
       <button onclick="pauseTimer()">Pause Timer</button>
       <button onclick="resetTimer()">Reset Timer</button>
     </div>
+    
+    <!-- Stopwatch Section (Local Functionality) -->
     <div id="stopwatchSection">
       <h2>Stopwatch</h2>
       <div id="stopwatchDisplay">00:00:00</div>
@@ -78,138 +86,95 @@
       <button onclick="resetStopwatch()">Reset Stopwatch</button>
     </div>
   </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
-
-    const firebaseConfig = {
-      // Firebase configuration
-var firebaseConfig = {
-  apiKey: "AIzaSyDUj4uoyS9zKuxWg1tEfErMphTrZM4JSI0",
-  authDomain: "timeportalproject.firebaseapp.com",
-  databaseURL: "https://timeportalproject-default-rtdb.firebaseio.com/",
-  projectId: "timeportalproject",
-  storageBucket: "timeportalproject.appspot.com",
-  messagingSenderId: "918034471289",
-  appId: "1:918034471289:web:04270332947adc0ab0b7a8",
-  measurementId: "G-T4RLN458SD"
-};
-
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-var database = firebase.database();
-var timerInterval, stopwatchInterval;
-var stopwatchTime = 0;
-
-// Timer Functions
-window.startTimer = function() {
-  var inputMinutes = parseInt(document.getElementById("timerInput").value);
-  if (isNaN(inputMinutes) || inputMinutes <= 0) {
-    alert("Please enter a positive number of minutes.");
-    return;
-  }
-  var totalSeconds = inputMinutes * 60;
-  var endTime = Date.now() + totalSeconds * 1000;
-  database.ref('timer').set({ status: "running", endTime: endTime });
-};
-
-window.pauseTimer = function() {
-  database.ref('timer').once('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data && data.status === "running") {
-      var remaining = Math.floor((data.endTime - Date.now()) / 1000);
-      clearInterval(timerInterval);
-      database.ref('timer').set({ status: "paused", remaining: remaining });
-    }
-  });
-};
-
-window.resetTimer = function() {
-  clearInterval(timerInterval);
-  database.ref('timer').set({ status: "stopped" });
-  document.getElementById("timerInput").value = "";
-};
-
-// Stopwatch Functions
-window.startStopwatch = function() {
-  clearInterval(stopwatchInterval);
-  stopwatchInterval = setInterval(() => {
-    stopwatchTime++;
-    document.getElementById("stopwatchDisplay").textContent = formatTime(stopwatchTime);
-  }, 1000);
-};
-
-window.pauseStopwatch = function() {
-  clearInterval(stopwatchInterval);
-};
-
-window.resetStopwatch = function() {
-  clearInterval(stopwatchInterval);
-  stopwatchTime = 0;
-  document.getElementById("stopwatchDisplay").textContent = "00:00:00";
-};
-
-// Utility function to format time
-function formatTime(seconds) {
-  let hrs = Math.floor(seconds / 3600);
-  let mins = Math.floor((seconds % 3600) / 60);
-  let secs = seconds % 60;
-  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-}
-
-
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
-    const timerRef = ref(database, 'timer');
+  
+  <!-- Firebase Scripts (v8 style) -->  
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script>
+    // ========= Firebase Setup =========
+    // Replace these values with your actual Firebase project config
+    var firebaseConfig = {
+      apiKey: "AIzaSyDUj4uoyS9zKuxWg1tEfErMphTrZM4JSI0",
+      authDomain: "timeportalproject.firebaseapp.com",
+      databaseURL: "https://timeportalproject-default-rtdb.firebaseio.com/",
+      projectId: "timeportalproject",
+      storageBucket: "timeportalproject.appspot.com",
+      messagingSenderId: "918034471289",
+      appId: "1:918034471289:web:04270332947adc0ab0b7a8",
+      measurementId: "G-T4RLN458SD"
+    };
     
-    let timerInterval;
-
-    function startTimer() {
-      let inputMinutes = parseInt(document.getElementById("timerInput").value);
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    var database = firebase.database();
+    
+    // Reference to our timer state in the database
+    var timerRef = database.ref('timer');
+    
+    // Global variables for intervals and stopwatch time
+    var timerInterval;
+    var stopwatchInterval;
+    var stopwatchTime = 0;
+    
+    // Utility function to format seconds as HH:MM:SS
+    function formatTime(totalSeconds) {
+      var hours = Math.floor(totalSeconds / 3600);
+      var minutes = Math.floor((totalSeconds % 3600) / 60);
+      var seconds = totalSeconds % 60;
+      return (hours < 10 ? "0" + hours : hours) + ":" +
+             (minutes < 10 ? "0" + minutes : minutes) + ":" +
+             (seconds < 10 ? "0" + seconds : seconds);
+    }
+    
+    // ========= Timer Functions =========
+    window.startTimer = function() {
+      var inputMinutes = parseInt(document.getElementById("timerInput").value);
       if (isNaN(inputMinutes) || inputMinutes <= 0) {
         alert("Please enter a positive number of minutes.");
         return;
       }
-      let totalSeconds = inputMinutes * 60;
-      let endTime = Date.now() + totalSeconds * 1000;
-      set(timerRef, { status: "running", endTime: endTime });
-    }
+      var totalSeconds = inputMinutes * 60;
+      var endTime = Date.now() + totalSeconds * 1000;
+      // Set the timer state in Firebase as running
+      timerRef.set({ status: "running", endTime: endTime });
+    };
     
-    function pauseTimer() {
-      onValue(timerRef, (snapshot) => {
-        const data = snapshot.val();
+    window.pauseTimer = function() {
+      timerRef.once('value', function(snapshot) {
+        var data = snapshot.val();
         if (data && data.status === "running") {
-          let remaining = Math.floor((data.endTime - Date.now()) / 1000);
+          var remaining = Math.floor((data.endTime - Date.now()) / 1000);
           clearInterval(timerInterval);
-          set(timerRef, { status: "paused", remaining: remaining });
+          // Update Firebase with the paused state
+          timerRef.set({ status: "paused", remaining: remaining });
         }
       });
-    }
-
-    function resetTimer() {
+    };
+    
+    window.resetTimer = function() {
       clearInterval(timerInterval);
-      set(timerRef, { status: "stopped" });
+      timerRef.set({ status: "stopped" });
       document.getElementById("timerInput").value = "";
-    }
-
+    };
+    
     function updateRunningTimer(endTime) {
       clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        let currentTime = Date.now();
-        let remaining = Math.floor((endTime - currentTime) / 1000);
+      timerInterval = setInterval(function() {
+        var currentTime = Date.now();
+        var remaining = Math.floor((endTime - currentTime) / 1000);
         if (remaining <= 0) {
           clearInterval(timerInterval);
           document.getElementById("timerDisplay").textContent = "Time's Up!";
-          set(timerRef, { status: "stopped" });
+          timerRef.set({ status: "stopped" });
         } else {
           document.getElementById("timerDisplay").textContent = formatTime(remaining);
         }
       }, 1000);
     }
-
-    onValue(timerRef, (snapshot) => {
-      const data = snapshot.val();
+    
+    // Listen for changes in the timer state from Firebase
+    timerRef.on('value', function(snapshot) {
+      var data = snapshot.val();
       if (data) {
         if (data.status === "running") {
           updateRunningTimer(data.endTime);
@@ -221,16 +186,24 @@ function formatTime(seconds) {
       }
     });
     
-    function formatTime(totalSeconds) {
-      let hours = Math.floor(totalSeconds / 3600);
-      let minutes = Math.floor((totalSeconds % 3600) / 60);
-      let seconds = totalSeconds % 60;
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-
-    window.startTimer = startTimer;
-    window.pauseTimer = pauseTimer;
-    window.resetTimer = resetTimer;
+    // ========= Stopwatch Functions (Local Only) =========
+    window.startStopwatch = function() {
+      clearInterval(stopwatchInterval);
+      stopwatchInterval = setInterval(function() {
+        stopwatchTime++;
+        document.getElementById("stopwatchDisplay").textContent = formatTime(stopwatchTime);
+      }, 1000);
+    };
+    
+    window.pauseStopwatch = function() {
+      clearInterval(stopwatchInterval);
+    };
+    
+    window.resetStopwatch = function() {
+      clearInterval(stopwatchInterval);
+      stopwatchTime = 0;
+      document.getElementById("stopwatchDisplay").textContent = "00:00:00";
+    };
   </script>
 </body>
 </html>
