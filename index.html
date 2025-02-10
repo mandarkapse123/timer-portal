@@ -84,14 +84,80 @@
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyDUj...",
-      authDomain: "timeportalproject.firebaseapp.com",
-      projectId: "timeportalproject",
-      storageBucket: "timeportalproject.firebaseapp.com",
-      messagingSenderId: "918034471289",
-      appId: "1:918034471289:web:04270332947adc0ab0b7a8",
-      measurementId: "G-T4RLN458SD"
-    };
+      // Firebase configuration
+var firebaseConfig = {
+  apiKey: "AIzaSyDUj4uoyS9zKuxWg1tEfErMphTrZM4JSI0",
+  authDomain: "timeportalproject.firebaseapp.com",
+  databaseURL: "https://timeportalproject-default-rtdb.firebaseio.com/",
+  projectId: "timeportalproject",
+  storageBucket: "timeportalproject.appspot.com",
+  messagingSenderId: "918034471289",
+  appId: "1:918034471289:web:04270332947adc0ab0b7a8",
+  measurementId: "G-T4RLN458SD"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+var database = firebase.database();
+var timerInterval, stopwatchInterval;
+var stopwatchTime = 0;
+
+// Timer Functions
+window.startTimer = function() {
+  var inputMinutes = parseInt(document.getElementById("timerInput").value);
+  if (isNaN(inputMinutes) || inputMinutes <= 0) {
+    alert("Please enter a positive number of minutes.");
+    return;
+  }
+  var totalSeconds = inputMinutes * 60;
+  var endTime = Date.now() + totalSeconds * 1000;
+  database.ref('timer').set({ status: "running", endTime: endTime });
+};
+
+window.pauseTimer = function() {
+  database.ref('timer').once('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data && data.status === "running") {
+      var remaining = Math.floor((data.endTime - Date.now()) / 1000);
+      clearInterval(timerInterval);
+      database.ref('timer').set({ status: "paused", remaining: remaining });
+    }
+  });
+};
+
+window.resetTimer = function() {
+  clearInterval(timerInterval);
+  database.ref('timer').set({ status: "stopped" });
+  document.getElementById("timerInput").value = "";
+};
+
+// Stopwatch Functions
+window.startStopwatch = function() {
+  clearInterval(stopwatchInterval);
+  stopwatchInterval = setInterval(() => {
+    stopwatchTime++;
+    document.getElementById("stopwatchDisplay").textContent = formatTime(stopwatchTime);
+  }, 1000);
+};
+
+window.pauseStopwatch = function() {
+  clearInterval(stopwatchInterval);
+};
+
+window.resetStopwatch = function() {
+  clearInterval(stopwatchInterval);
+  stopwatchTime = 0;
+  document.getElementById("stopwatchDisplay").textContent = "00:00:00";
+};
+
+// Utility function to format time
+function formatTime(seconds) {
+  let hrs = Math.floor(seconds / 3600);
+  let mins = Math.floor((seconds % 3600) / 60);
+  let secs = seconds % 60;
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
