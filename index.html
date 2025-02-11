@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Modern Timer and Stopwatch Portal</title>
+  <title>Modern Timer and Notes Portal</title>
   <!-- Using a modern Google Font -->
   <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
   <!-- Optional: A blank favicon to avoid 404 errors -->
@@ -22,27 +22,32 @@
     }
     .container {
       display: flex;
-      
       flex-direction: column;
       align-items: center;
       gap: 50px;
     }
+    .content {
+      display: flex;
+      justify-content: space-between;
+      width: 90%;
+      max-width: 800px;
+      gap: 20px; /* Add space between timer and notes sections */
+    }
     /* Section Styles */
-    #timerSection, #stopwatchSection {
+    #timerSection, #notesSection {
       background: #1a1a1a;
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-      width: 90%;
-      max-width: 400px;
+      width: 48%;
     }
-    #timerDisplay, #stopwatchDisplay {
+    #timerDisplay {
       font-size: 48px;
       font-weight: bold;
       margin: 20px 0;
     }
     /* Button and Input Styles */
-    button, input[type="number"] {
+    button, input[type="number"], textarea {
       padding: 10px 20px;
       margin: 5px;
       font-size: 16px;
@@ -50,9 +55,13 @@
       border-radius: 4px;
       outline: none;
     }
-    input[type="number"] {
+    input[type="number"], textarea {
       width: calc(100% - 40px);
       text-align: center;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
     }
     button {
       background-color: #007BFF;
@@ -62,35 +71,99 @@
     button:hover {
       background-color: #0056b3;
     }
+    /* Notes display area */
+    #notesDisplay {
+      background: #fff;
+      color: #000;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      min-height: 40px;
+      word-wrap: break-word;
+    }
+    .note {
+      background: #f1f1f1;
+      color: #000;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      text-align: left;
+      position: relative;
+    }
+    .note-timestamp {
+      font-size: 12px;
+      color: #555;
+      text-align: right;
+    }
+    .note-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    .note-actions button {
+      background: none;
+      border: none;
+      color: #007BFF;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .note-actions button:hover {
+      color: #0056b3;
+    }
+    /* Date and Time Styles */
+    #dateTime {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    /* Responsive Layout */
+    @media (max-width: 768px) {
+      .content {
+        flex-direction: column;
+        align-items: center;
+      }
+      #timerSection, #notesSection {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>Modern Timer and Stopwatch Portal</h1>
+  <h1>Modern Timer and Notes Portal</h1>
+  <div id="dateTime"></div>
   <div class="container">
-    <!-- Timer Section -->
-    <div id="timerSection">
-      <h2>Timer</h2>
-      <div id="timerDisplay">00:00:00</div>
-      <input type="number" id="timerInput" placeholder="Enter minutes" />
-      <br>
-      <button onclick="startTimer()">Start Timer</button>
-      <button onclick="pauseTimer()">Pause Timer</button>
-      <button onclick="resetTimer()">Reset Timer</button>
-    </div>
-    
-    <!-- Stopwatch Section (Local Functionality) -->
-    <div id="stopwatchSection">
-      <h2>Stopwatch</h2>
-      <div id="stopwatchDisplay">00:00:00</div>
-      <button onclick="startStopwatch()">Start Stopwatch</button>
-      <button onclick="pauseStopwatch()">Pause Stopwatch</button>
-      <button onclick="resetStopwatch()">Reset Stopwatch</button>
+    <div class="content">
+      <!-- Timer Section -->
+      <div id="timerSection">
+        <h2>Timer</h2>
+        <div id="timerDisplay">00:00:00</div>
+        <input type="number" id="timerInput" placeholder="Enter minutes" />
+        <br>
+        <button onclick="startTimer()">Start Timer</button>
+        <button onclick="pauseTimer()">Pause Timer</button>
+        <button onclick="resetTimer()">Reset Timer</button>
+        <br>
+        <button onclick="setTimer(5)">5 Minutes</button>
+        <button onclick="setTimer(10)">10 Minutes</button>
+        <button onclick="setTimer(20)">20 Minutes</button>
+        <button onclick="setTimer(25)">25 Minutes</button>
+      </div>
+      
+      <!-- Notes Section -->
+      <div id="notesSection">
+        <h2>Notes</h2>
+        <textarea id="notesInput" placeholder="Enter your note here..."></textarea>
+        <br>
+        <button onclick="saveNote()">Save Note</button>
+        <h3>Saved Notes:</h3>
+        <div id="notesDisplay"></div>
+      </div>
     </div>
   </div>
   
   <!-- Firebase Scripts (v8 style) -->  
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
   <script>
     // ========= Firebase Setup =========
     // Replace these values with your actual Firebase project config
@@ -111,11 +184,11 @@
     
     // Reference to our timer state in the database
     var timerRef = database.ref('timer');
+    // Reference to notes in the database
+    var notesRef = database.ref('notes');
     
-    // Global variables for intervals and stopwatch time
+    // Global variables for timer interval and stopwatch (now removed) and local note
     var timerInterval;
-    var stopwatchInterval;
-    var stopwatchTime = 0;
     
     // Utility function to format seconds as HH:MM:SS
     function formatTime(totalSeconds) {
@@ -125,6 +198,11 @@
       return (hours < 10 ? "0" + hours : hours) + ":" +
              (minutes < 10 ? "0" + minutes : minutes) + ":" +
              (seconds < 10 ? "0" + seconds : seconds);
+    }
+    
+    // Request notification permission
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission();
     }
     
     // ========= Timer Functions =========
@@ -158,6 +236,11 @@
       document.getElementById("timerInput").value = "";
     };
     
+    function setTimer(minutes) {
+      document.getElementById("timerInput").value = minutes;
+      startTimer();
+    }
+    
     function updateRunningTimer(endTime) {
       clearInterval(timerInterval);
       timerInterval = setInterval(function() {
@@ -167,6 +250,8 @@
           clearInterval(timerInterval);
           document.getElementById("timerDisplay").textContent = "Time's Up!";
           timerRef.set({ status: "stopped" });
+          showNotification();
+          triggerConfetti();
         } else {
           document.getElementById("timerDisplay").textContent = formatTime(remaining);
         }
@@ -187,24 +272,82 @@
       }
     });
     
-    // ========= Stopwatch Functions (Local Only) =========
-    window.startStopwatch = function() {
-      clearInterval(stopwatchInterval);
-      stopwatchInterval = setInterval(function() {
-        stopwatchTime++;
-        document.getElementById("stopwatchDisplay").textContent = formatTime(stopwatchTime);
-      }, 1000);
+    // Show notification when timer is complete
+    function showNotification() {
+      if (Notification.permission === "granted") {
+        new Notification("Timer Complete", {
+          body: "Your timer has finished!",
+          icon: "https://example.com/timer-icon.png" // Optional: Add an icon URL
+        });
+      }
+    }
+    
+    // Trigger confetti animation
+    function triggerConfetti() {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    }
+    
+    // ========= Notes Functions =========
+    window.saveNote = function() {
+      var noteContent = document.getElementById("notesInput").value;
+      if (noteContent.trim() === "") {
+        alert("Please enter a note.");
+        return;
+      }
+      // Save the note along with a timestamp
+      var newNoteRef = notesRef.push();
+      newNoteRef.set({ note: noteContent, timestamp: Date.now() });
+      document.getElementById("notesInput").value = "";
     };
     
-    window.pauseStopwatch = function() {
-      clearInterval(stopwatchInterval);
+    window.editNote = function(noteId, noteContent) {
+      var newContent = prompt("Edit your note:", noteContent);
+      if (newContent !== null && newContent.trim() !== "") {
+        notesRef.child(noteId).update({ note: newContent });
+      }
     };
     
-    window.resetStopwatch = function() {
-      clearInterval(stopwatchInterval);
-      stopwatchTime = 0;
-      document.getElementById("stopwatchDisplay").textContent = "00:00:00";
+    window.deleteNote = function(noteId) {
+      if (confirm("Are you sure you want to delete this note?")) {
+        notesRef.child(noteId).remove();
+      }
     };
+    
+    // Listen for changes in the notes state from Firebase
+    notesRef.on('value', function(snapshot) {
+      var notesDisplay = document.getElementById("notesDisplay");
+      notesDisplay.innerHTML = "";
+      snapshot.forEach(function(childSnapshot) {
+        var noteData = childSnapshot.val();
+        var noteElement = document.createElement("div");
+        noteElement.className = "note";
+        noteElement.innerHTML = `
+          <div>${noteData.note}</div>
+          <div class="note-timestamp">${new Date(noteData.timestamp).toLocaleString()}</div>
+          <div class="note-actions">
+            <button onclick="editNote('${childSnapshot.key}', '${noteData.note}')">Edit</button>
+            <button onclick="deleteNote('${childSnapshot.key}')">Delete</button>
+          </div>
+        `;
+        notesDisplay.appendChild(noteElement);
+      });
+    });
+    
+    // Function to update the current date and time
+    function updateDateTime() {
+      var now = new Date();
+      var dateTimeString = now.toLocaleString();
+      document.getElementById("dateTime").textContent = dateTimeString;
+    }
+    
+    // Update the date and time every second
+    setInterval(updateDateTime, 1000);
+    // Initial call to display the date and time immediately
+    updateDateTime();
   </script>
 </body>
 </html>
